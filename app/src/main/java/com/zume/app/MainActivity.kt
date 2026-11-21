@@ -21,9 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
 
 private val ZumeBlue = Color(0xFF2496E8)
 private val PaleBlue = Color(0xFFEAF6FF)
@@ -53,39 +54,40 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun ZumeWelcome() {
+    val auth = remember { FirebaseAuth.getInstance() }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isRegister by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Добро пожаловать в Zume!") }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = PaleBlue
-    ) {
+    fun showError(error: Exception?) {
+        isLoading = false
+        message = when {
+            error == null -> "Не удалось выполнить действие. Проверь интернет и попробуй ещё раз."
+            error.message?.contains("already in use", ignoreCase = true) == true ->
+                "Этот адрес уже зарегистрирован. Попробуй войти."
+            error.message?.contains("badly formatted", ignoreCase = true) == true ->
+                "Проверь правильность адреса электронной почты."
+            error.message?.contains("password", ignoreCase = true) == true ->
+                "Пароль должен содержать не менее 6 символов."
+            error.message?.contains("network", ignoreCase = true) == true ->
+                "Нет подключения к интернету. Попробуй ещё раз."
+            else -> "Не получилось выполнить действие. Проверь данные и настройки Firebase."
+        }
+    }
+
+    Surface(modifier = Modifier.fillMaxSize(), color = PaleBlue) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
+            modifier = Modifier.fillMaxSize().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = "Zume",
-                color = ZumeBlue,
-                fontSize = 44.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Общайся. Делись. Будь на связи.",
-                color = Color(0xFF52738A),
-                fontSize = 14.sp
-            )
+            Text("Zume", color = ZumeBlue, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+            Text("Общайся. Делись. Будь на связи.", color = Color(0xFF52738A), fontSize = 14.sp)
             Spacer(modifier = Modifier.height(28.dp))
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(24.dp))
-                    .padding(20.dp),
+                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(24.dp)).padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -97,10 +99,11 @@ fun ZumeWelcome() {
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = { email = it.trim() },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("Электронная почта") },
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isLoading
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 OutlinedTextField(
@@ -109,29 +112,81 @@ fun ZumeWelcome() {
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("Пароль") },
                     visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isLoading
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = {
-                        message = "Это пока макет: подключение аккаунтов ещё не настроено."
+                        if (email.isBlank() || !email.contains("@")) {
+                            message = "Введи правильный адрес электронной почты."
+                        } else if (password.length < 6) {
+                            message = "Пароль должен содержать не менее 6 символов."
+                        } else {
+                            isLoading = true
+                            message = if (isRegister) "Создаём аккаунт..." else "Проверяем данные..."
+                            if (isRegister) {
+                                auth.createUserWithEmailAndPassword(email, password)
+                                    .addOnCompleteListener { task ->
+                                        if (task.isSuccessful) {
+                                            val user = auth.currentUser
+                                            if (user != null) {
+                                                user.sendEmailVerification().addOnCompleteListener { verifyTask ->
+                                                    isLoading = false
+                                                    message = if (verifyTask.isSuccessful) {
+                                                        "Аккаунт создан! Открой письмо от Firebase и нажми ссылку подтверждения. Затем вернись сюда и войди."
+                                                    } else {
+                                                        "Аккаунт создан, но письмо не отправлено. Проверь настройки Firebase и попробуй снова."
+                                                    }
+                                                }
+                                            } else {
+                                                showError(null)
+                                            }
+                                        } else {
+                                            showError(task.exception)
+                                        }
+                                    }
+                            } else {
+                                auth.signInWithEmailAndPassword(email, password)
+                                    .addOnCompleteListener { task ->
+                                        if (task.isSuccessful) {
+                                            val user = auth.currentUser
+                                            if (user != null) {
+                                                user.reload().addOnCompleteListener { reloadTask ->
+                                                    isLoading = false
+                                                    if (reloadTask.isSuccessful && auth.currentUser?.isEmailVerified == true) {
+                                                        message = "Почта подтверждена! Ты вошёл в Zume."
+                                                    } else {
+                                                        auth.signOut()
+                                                        message = "Сначала подтверди почту по ссылке в письме, затем войди снова."
+                                                    }
+                                                }
+                                            } else {
+                                                showError(null)
+                                            }
+                                        } else {
+                                            showError(task.exception)
+                                        }
+                                    }
+                            }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading,
                     colors = ButtonDefaults.buttonColors(containerColor = ZumeBlue)
                 ) {
-                    Text(if (isRegister) "Зарегистрироваться" else "Войти")
+                    Text(if (isLoading) "Подожди..." else if (isRegister) "Зарегистрироваться" else "Войти")
                 }
-                TextButton(onClick = {
-                    isRegister = !isRegister
-                    message = if (isRegister) "Создание аккаунта" else "Вход в аккаунт"
-                }) {
+                TextButton(
+                    enabled = !isLoading,
+                    onClick = {
+                        isRegister = !isRegister
+                        message = if (isRegister) "Создание аккаунта" else "Вход в аккаунт"
+                    }
+                ) {
                     Text(if (isRegister) "Уже есть аккаунт? Войти" else "Нет аккаунта? Регистрация")
                 }
-                Text(
-                    text = message,
-                    color = Color(0xFF52738A),
-                    fontSize = 12.sp
-                )
+                Text(message, color = Color(0xFF52738A), fontSize = 12.sp)
             }
         }
     }
