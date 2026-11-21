@@ -1,11 +1,16 @@
 package com.zume.app
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,7 +66,17 @@ fun ZumeWelcome() {
     var password by remember { mutableStateOf("") }
     var isRegister by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+    var isSignedIn by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Добро пожаловать в Zume!") }
+
+    if (isSignedIn) {
+        ZumeHome(onSignOut = {
+            auth.signOut()
+            isSignedIn = false
+            message = "Ты вышел из аккаунта."
+        })
+        return
+    }
 
     fun showError(error: Exception?) {
         isLoading = false
@@ -134,17 +151,13 @@ fun ZumeWelcome() {
                                                 user.sendEmailVerification().addOnCompleteListener { verifyTask ->
                                                     isLoading = false
                                                     message = if (verifyTask.isSuccessful) {
-                                                        "Аккаунт создан! Открой письмо от Firebase и нажми ссылку подтверждения. Затем вернись сюда и войди."
+                                                        "Аккаунт создан! Открой письмо и нажми ссылку подтверждения, затем войди."
                                                     } else {
-                                                        "Аккаунт создан, но письмо не отправлено. Проверь настройки Firebase и попробуй снова."
+                                                        "Аккаунт создан, но письмо не отправлено. Проверь настройки Firebase."
                                                     }
                                                 }
-                                            } else {
-                                                showError(null)
-                                            }
-                                        } else {
-                                            showError(task.exception)
-                                        }
+                                            } else showError(null)
+                                        } else showError(task.exception)
                                     }
                             } else {
                                 auth.signInWithEmailAndPassword(email, password)
@@ -155,18 +168,14 @@ fun ZumeWelcome() {
                                                 user.reload().addOnCompleteListener { reloadTask ->
                                                     isLoading = false
                                                     if (reloadTask.isSuccessful && auth.currentUser?.isEmailVerified == true) {
-                                                        message = "Почта подтверждена! Ты вошёл в Zume."
+                                                        isSignedIn = true
                                                     } else {
                                                         auth.signOut()
                                                         message = "Сначала подтверди почту по ссылке в письме, затем войди снова."
                                                     }
                                                 }
-                                            } else {
-                                                showError(null)
-                                            }
-                                        } else {
-                                            showError(task.exception)
-                                        }
+                                            } else showError(null)
+                                        } else showError(task.exception)
                                     }
                             }
                         }
@@ -187,6 +196,73 @@ fun ZumeWelcome() {
                     Text(if (isRegister) "Уже есть аккаунт? Войти" else "Нет аккаунта? Регистрация")
                 }
                 Text(message, color = Color(0xFF52738A), fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun ZumeHome(onSignOut: () -> Unit) {
+    var selectedTab by remember { mutableStateOf(0) }
+    val videoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(androidx.compose.ui.platform.LocalContext.current, "Видео записано", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    Surface(modifier = Modifier.fillMaxSize(), color = PaleBlue) {
+        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Zume", color = ZumeBlue, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                TextButton(onClick = onSignOut) { Text("Выйти") }
+            }
+            Column(
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (selectedTab == 0) {
+                    Text("Переписки", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(12.dp))
+                    Text("Здесь будут твои чаты.", color = Color(0xFF52738A), fontSize = 16.sp)
+                } else {
+                    Text("Снять видео", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(12.dp))
+                    Text("Нажми кнопку, чтобы открыть камеру.", color = Color(0xFF52738A), fontSize = 15.sp)
+                    Spacer(Modifier.height(20.dp))
+                    Button(
+                        onClick = {
+                            val intent = Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE)
+                            if (intent.resolveActivity(context.packageManager) != null) {
+                                videoLauncher.launch(intent)
+                            } else {
+                                Toast.makeText(context, "На устройстве не найдена камера для записи видео", Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = ZumeBlue)
+                    ) { Text("●  Начать запись") }
+                }
+            }
+            NavigationBar(containerColor = Color.White) {
+                NavigationBarItem(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    icon = { Text("✉", fontSize = 20.sp) },
+                    label = { Text("Переписки") }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    icon = { Text("●", fontSize = 20.sp) },
+                    label = { Text("Снять видео") }
+                )
             }
         }
     }
