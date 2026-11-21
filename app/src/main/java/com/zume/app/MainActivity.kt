@@ -280,29 +280,100 @@ private fun FeedScreen() {
         if (status.isNotBlank()) Text(status, color = Color(0xFF7893A5), fontSize = 13.sp)
         LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(posts, key = { it.id }) { post ->
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(18.dp))
-                        .padding(14.dp)
-                ) {
-                    Text("@${post.author}", color = ZumeBlue, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(6.dp))
-                    Text(post.text, color = Color(0xFF17364A), fontSize = 15.sp)
-                    Spacer(Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        val liked = user != null && post.likedBy.contains(user.uid)
-                        TextButton(
-                            onClick = {
-                                val current = user ?: return@TextButton
-                                val update = if (liked) FieldValue.arrayRemove(current.uid) else FieldValue.arrayUnion(current.uid)
-                                db.collection("posts").document(post.id).update("likedBy", update)
-                            },
-                            enabled = user != null
-                        ) { Text(if (liked) "♥ Нравится" else "♡ Нравится", color = ZumeBlue) }
-                        Text("${post.likedBy.size} лайков", color = Color(0xFF7893A5), fontSize = 12.sp)
+                PostCard(post = post, userUid = user?.uid, db = db)
+            }
+        }
+    }
+}
+
+private data class PostComment(val id: String, val author: String, val text: String)
+
+@Composable
+private fun PostCard(post: FeedPost, userUid: String?, db: FirebaseFirestore) {
+    var commentText by remember(post.id) { mutableStateOf("") }
+    var comments by remember(post.id) { mutableStateOf<List<PostComment>>(emptyList()) }
+    var commentsStatus by remember(post.id) { mutableStateOf("") }
+    DisposableEffect(post.id) {
+        val registration = db.collection("posts").document(post.id)
+            .collection("comments")
+            .orderBy("createdAt", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    commentsStatus = "Комментарии пока недоступны."
+                } else if (snapshot != null) {
+                    comments = snapshot.documents.map { doc ->
+                        PostComment(
+                            id = doc.id,
+                            author = doc.getString("author") ?: "Пользователь",
+                            text = doc.getString("text") ?: ""
+                        )
                     }
+                    commentsStatus = ""
                 }
             }
+        onDispose { registration.remove() }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .background(Color.White, RoundedCornerShape(18.dp))
+            .padding(14.dp)
+    ) {
+        Text("@${post.author}", color = ZumeBlue, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        Text(post.text, color = Color(0xFF17364A), fontSize = 15.sp)
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val liked = userUid != null && post.likedBy.contains(userUid)
+            TextButton(
+                onClick = {
+                    val current = userUid ?: return@TextButton
+                    val update = if (liked) FieldValue.arrayRemove(current) else FieldValue.arrayUnion(current)
+                    db.collection("posts").document(post.id).update("likedBy", update)
+                },
+                enabled = userUid != null
+            ) { Text(if (liked) "♥ Нравится" else "♡ Нравится", color = ZumeBlue) }
+            Text("${post.likedBy.size} лайков", color = Color(0xFF7893A5), fontSize = 12.sp)
+            Text("  ·  ${comments.size} комментариев", color = Color(0xFF7893A5), fontSize = 12.sp)
+        }
+        if (comments.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            comments.forEach { comment ->
+                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Text("@${comment.author}", color = ZumeBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(comment.text, color = Color(0xFF36566B), fontSize = 13.sp)
+                }
+            }
+        }
+        if (commentsStatus.isNotBlank()) {
+            Text(commentsStatus, color = Color(0xFF7893A5), fontSize = 11.sp)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = commentText,
+                onValueChange = { if (it.length <= 500) commentText = it },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                label = { Text("Написать комментарий") }
+            )
+            TextButton(
+                enabled = userUid != null && commentText.isNotBlank(),
+                onClick = {
+                    val current = FirebaseAuth.getInstance().currentUser ?: return@TextButton
+                    val text = commentText.trim()
+                    if (text.isNotEmpty()) {
+                        db.collection("posts").document(post.id).collection("comments").add(
+                            hashMapOf(
+                                "author" to (current.email?.substringBefore("@") ?: "Пользователь"),
+                                "authorUid" to current.uid,
+                                "text" to text,
+                                "createdAt" to FieldValue.serverTimestamp()
+                            )
+                        ).addOnSuccessListener { commentText = "" }
+                            .addOnFailureListener { commentsStatus = "Не удалось отправить комментарий." }
+                    }
+                }
+            ) { Text("Отправить", color = ZumeBlue) }
         }
     }
 }
