@@ -204,14 +204,14 @@ fun ZumeWelcome() {
 @Composable
 fun ZumeHome(onSignOut: () -> Unit) {
     var selectedTab by remember { mutableStateOf(0) }
+    val context = androidx.compose.ui.platform.LocalContext.current
     val videoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(androidx.compose.ui.platform.LocalContext.current, "Видео записано", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Видео записано", Toast.LENGTH_SHORT).show()
         }
     }
-    val context = androidx.compose.ui.platform.LocalContext.current
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaleBlue) {
         androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
