@@ -1,21 +1,21 @@
 # Zume
 
-Zume is an Android social-network starter project.
+Zume is an Android social-network starter project built with Kotlin and Jetpack Compose.
 
-## Project status
+## Included
 
-This repository is being prepared for the Android app. The app source code and cloud build workflow have not yet been added.
+- Android application module and launcher screen
+- Blue Zume welcome and sign-in/register interface
+- Gradle build configuration
+- GitHub Actions workflow for building a debug APK
 
-## Planned features
+## Build status
 
-- Account registration and sign-in
+The APK build is being triggered through GitHub Actions. The workflow creates a Gradle Wrapper in the runner, builds the debug APK, and uploads it as an artifact if successful.
+
+## Planned next features
+
+- Connect registration and sign-in to Firebase Authentication
 - User profiles
 - Photo and video posts
 - Private messaging
-
-## Next setup steps
-
-1. Add the Android project source files.
-2. Configure Firebase Authentication and add `google-services.json` privately to the project (do not publish API secrets or passwords).
-3. Add a Gradle wrapper and GitHub Actions Android build workflow.
-4. Build and test the APK.
