@@ -15,6 +15,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.DisposableEffect
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -43,6 +49,8 @@ import com.google.firebase.auth.FirebaseAuth
 
 private val ZumeBlue = Color(0xFF2496E8)
 private val PaleBlue = Color(0xFFEAF6FF)
+
+private data class FeedPost(val id: String, val author: String, val text: String, val likedBy: List<String>)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -201,6 +209,104 @@ fun ZumeWelcome() {
     }
 }
 
+
+@Composable
+private fun FeedScreen() {
+    val user = FirebaseAuth.getInstance().currentUser
+    val db = remember { FirebaseFirestore.getInstance() }
+    var postText by remember { mutableStateOf("") }
+    var posts by remember { mutableStateOf<List<FeedPost>>(emptyList()) }
+    var status by remember { mutableStateOf("Загружаем ленту...") }
+
+    DisposableEffect(user?.uid) {
+        if (user == null) {
+            status = "Войди в аккаунт, чтобы смотреть и публиковать посты."
+            onDispose { }
+        } else {
+            val registration = db.collection("posts")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        status = "Не удалось загрузить ленту. Проверь правила Firestore."
+                    } else if (snapshot != null) {
+                        posts = snapshot.documents.map { doc ->
+                            FeedPost(
+                                id = doc.id,
+                                author = doc.getString("author") ?: "Пользователь Zume",
+                                text = doc.getString("text") ?: "",
+                                likedBy = (doc.get("likedBy") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                            )
+                        }
+                        status = if (posts.isEmpty()) "Пока нет постов. Опубликуй первый!" else ""
+                    }
+                }
+            onDispose { registration.remove() }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Лента Zume", color = Color(0xFF17364A), fontSize = 27.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            value = postText,
+            onValueChange = { postText = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("О чём хочешь рассказать?") },
+            placeholder = { Text("Напиши новый пост...") }
+        )
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = {
+                val current = user
+                val content = postText.trim()
+                if (current != null && content.isNotEmpty()) {
+                    db.collection("posts").add(
+                        hashMapOf(
+                            "author" to (current.email?.substringBefore("@") ?: "Пользователь"),
+                            "authorUid" to current.uid,
+                            "text" to content,
+                            "likedBy" to emptyList<String>(),
+                            "createdAt" to FieldValue.serverTimestamp()
+                        )
+                    ).addOnSuccessListener { postText = "" }
+                        .addOnFailureListener { status = "Не удалось опубликовать. Проверь настройки Firestore." }
+                }
+            },
+            enabled = user != null && postText.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = ZumeBlue)
+        ) { Text("Опубликовать") }
+        Spacer(Modifier.height(12.dp))
+        if (status.isNotBlank()) Text(status, color = Color(0xFF7893A5), fontSize = 13.sp)
+        LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(posts, key = { it.id }) { post ->
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                        .background(Color.White, RoundedCornerShape(18.dp))
+                        .padding(14.dp)
+                ) {
+                    Text("@${post.author}", color = ZumeBlue, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(6.dp))
+                    Text(post.text, color = Color(0xFF17364A), fontSize = 15.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val liked = user != null && post.likedBy.contains(user.uid)
+                        TextButton(
+                            onClick = {
+                                val current = user ?: return@TextButton
+                                val update = if (liked) FieldValue.arrayRemove(current.uid) else FieldValue.arrayUnion(current.uid)
+                                db.collection("posts").document(post.id).update("likedBy", update)
+                            },
+                            enabled = user != null
+                        ) { Text(if (liked) "♥ Нравится" else "♡ Нравится", color = ZumeBlue) }
+                        Text("${post.likedBy.size} лайков", color = Color(0xFF7893A5), fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun ZumeHome(onSignOut: () -> Unit) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -234,14 +340,15 @@ fun ZumeHome(onSignOut: () -> Unit) {
                 verticalArrangement = Arrangement.Center
             ) {
                 when (selectedTab) {
-                    0 -> {
+                    0 -> FeedScreen()
+                    1 -> {
                         Text("Переписки", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(12.dp))
                         Text("Здесь будут твои чаты.", color = Color(0xFF52738A), fontSize = 16.sp)
                         Spacer(Modifier.height(8.dp))
                         Text("Чаты пока не подключены к базе сообщений.", color = Color(0xFF7893A5), fontSize = 12.sp)
                     }
-                    1 -> {
+                    2 -> {
                         Text("Снять видео", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(12.dp))
                         Text("Нажми кнопку, чтобы открыть камеру.", color = Color(0xFF52738A), fontSize = 15.sp)
@@ -258,7 +365,7 @@ fun ZumeHome(onSignOut: () -> Unit) {
                             colors = ButtonDefaults.buttonColors(containerColor = ZumeBlue)
                         ) { Text("●  Начать запись") }
                     }
-                    2 -> {
+                    3 -> {
                         Text("Найти друзей", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(12.dp))
                         Text("Найди людей по имени пользователя", color = Color(0xFF52738A), fontSize = 14.sp)
@@ -354,26 +461,26 @@ fun ZumeHome(onSignOut: () -> Unit) {
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    icon = { Text("✉", fontSize = 20.sp) },
-                    label = { Text("Переписки") }
+                    icon = { Text("♥", fontSize = 20.sp) },
+                    label = { Text("Лента") }
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    icon = { Text("●", fontSize = 20.sp) },
-                    label = { Text("Снять видео") }
+                    icon = { Text("✉", fontSize = 20.sp) },
+                    label = { Text("Переписки") }
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    icon = { Text("⌕", fontSize = 22.sp) },
-                    label = { Text("Найти друзей") }
+                    icon = { Text("●", fontSize = 20.sp) },
+                    label = { Text("Снять видео") }
                 )
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
-                    icon = { Text("●", fontSize = 20.sp) },
-                    label = { Text("Профиль") }
+                    icon = { Text("⌕", fontSize = 22.sp) },
+                    label = { Text("Найти друзей") }
                 )
             }
         }
