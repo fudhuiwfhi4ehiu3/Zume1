@@ -1,0 +1,19 @@
+{
+  "project_info": {
+    "project_number": "97760335260",
+    "project_id": "zume-c291d",
+    "storage_bucket": "zume-c291d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97760335260:android:56166d77f9f0f66b3d2459",
+        "android_client_info": { "package_name": "com.zume.app" }
+      },
+      "oauth_client": [],
+      "api_key": [{ "current_key": "AIzaSyDwv20DuCKx2P8RpftVijCx7rEVVWWTsxU" }],
+      "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+    }
+  ],
+  "configuration_version": "1"
+}
