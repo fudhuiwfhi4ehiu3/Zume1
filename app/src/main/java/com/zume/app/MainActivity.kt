@@ -204,6 +204,7 @@ fun ZumeWelcome() {
 @Composable
 fun ZumeHome(onSignOut: () -> Unit) {
     var selectedTab by remember { mutableStateOf(0) }
+    var friendQuery by remember { mutableStateOf("") }
     val context = androidx.compose.ui.platform.LocalContext.current
     val videoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -228,26 +229,59 @@ fun ZumeHome(onSignOut: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                if (selectedTab == 0) {
-                    Text("Переписки", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(12.dp))
-                    Text("Здесь будут твои чаты.", color = Color(0xFF52738A), fontSize = 16.sp)
-                } else {
-                    Text("Снять видео", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(12.dp))
-                    Text("Нажми кнопку, чтобы открыть камеру.", color = Color(0xFF52738A), fontSize = 15.sp)
-                    Spacer(Modifier.height(20.dp))
-                    Button(
-                        onClick = {
-                            val intent = Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE)
-                            if (intent.resolveActivity(context.packageManager) != null) {
-                                videoLauncher.launch(intent)
-                            } else {
-                                Toast.makeText(context, "На устройстве не найдена камера для записи видео", Toast.LENGTH_LONG).show()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = ZumeBlue)
-                    ) { Text("●  Начать запись") }
+                when (selectedTab) {
+                    0 -> {
+                        Text("Переписки", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(12.dp))
+                        Text("Здесь будут твои чаты.", color = Color(0xFF52738A), fontSize = 16.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text("Чаты пока не подключены к базе сообщений.", color = Color(0xFF7893A5), fontSize = 12.sp)
+                    }
+                    1 -> {
+                        Text("Снять видео", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(12.dp))
+                        Text("Нажми кнопку, чтобы открыть камеру.", color = Color(0xFF52738A), fontSize = 15.sp)
+                        Spacer(Modifier.height(20.dp))
+                        Button(
+                            onClick = {
+                                val intent = Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE)
+                                if (intent.resolveActivity(context.packageManager) != null) {
+                                    videoLauncher.launch(intent)
+                                } else {
+                                    Toast.makeText(context, "На устройстве не найдена камера для записи видео", Toast.LENGTH_LONG).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = ZumeBlue)
+                        ) { Text("●  Начать запись") }
+                    }
+                    else -> {
+                        Text("Найти друзей", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(12.dp))
+                        Text("Найди людей по имени пользователя", color = Color(0xFF52738A), fontSize = 14.sp)
+                        Spacer(Modifier.height(18.dp))
+                        OutlinedTextField(
+                            value = friendQuery,
+                            onValueChange = { friendQuery = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text("Имя пользователя") },
+                            placeholder = { Text("@username") }
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = {
+                                Toast.makeText(context, "Каталог профилей ещё не подключён", Toast.LENGTH_LONG).show()
+                            },
+                            enabled = friendQuery.isNotBlank(),
+                            colors = ButtonDefaults.buttonColors(containerColor = ZumeBlue)
+                        ) { Text("Найти") }
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "Поиск, профили и кнопка «Написать» появятся после подключения базы пользователей.",
+                            color = Color(0xFF7893A5),
+                            fontSize = 12.sp
+                        )
+                    }
                 }
             }
             NavigationBar(containerColor = Color.White) {
@@ -262,6 +296,12 @@ fun ZumeHome(onSignOut: () -> Unit) {
                     onClick = { selectedTab = 1 },
                     icon = { Text("●", fontSize = 20.sp) },
                     label = { Text("Снять видео") }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    icon = { Text("⌕", fontSize = 22.sp) },
+                    label = { Text("Найти друзей") }
                 )
             }
         }
