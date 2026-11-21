@@ -205,6 +205,10 @@ fun ZumeWelcome() {
 fun ZumeHome(onSignOut: () -> Unit) {
     var selectedTab by remember { mutableStateOf(0) }
     var friendQuery by remember { mutableStateOf("") }
+    var profileName by remember { mutableStateOf("") }
+    var profileBio by remember { mutableStateOf("") }
+    var hashtagInput by remember { mutableStateOf("") }
+    var hashtags by remember { mutableStateOf(listOf<String>()) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val videoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -254,7 +258,7 @@ fun ZumeHome(onSignOut: () -> Unit) {
                             colors = ButtonDefaults.buttonColors(containerColor = ZumeBlue)
                         ) { Text("●  Начать запись") }
                     }
-                    else -> {
+                    2 -> {
                         Text("Найти друзей", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(12.dp))
                         Text("Найди людей по имени пользователя", color = Color(0xFF52738A), fontSize = 14.sp)
@@ -282,6 +286,68 @@ fun ZumeHome(onSignOut: () -> Unit) {
                             fontSize = 12.sp
                         )
                     }
+                    else -> {
+                        Text("Мой профиль", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(16.dp))
+                        Surface(color = Color(0xFFD5ECFC), shape = RoundedCornerShape(48.dp), modifier = Modifier.padding(4.dp)) {
+                            Text(
+                                text = profileName.trim().firstOrNull()?.uppercase() ?: "Z",
+                                modifier = Modifier.padding(horizontal = 26.dp, vertical = 16.dp),
+                                color = ZumeBlue,
+                                fontSize = 34.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        OutlinedTextField(
+                            value = profileName,
+                            onValueChange = { profileName = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text("Имя пользователя") },
+                            placeholder = { Text("@username") }
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = profileBio,
+                            onValueChange = { profileBio = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("О себе") },
+                            placeholder = { Text("Расскажи немного о себе") }
+                        )
+                        Spacer(Modifier.height(18.dp))
+                        Text("Мои хэштеги", color = Color(0xFF17364A), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = hashtagInput,
+                            onValueChange = { hashtagInput = it.replace(" ", "") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text("Добавить хэштег") },
+                            placeholder = { Text("#путешествия") }
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                val tag = "#" + hashtagInput.trim().removePrefix("#").lowercase()
+                                if (tag.length > 1 && tag !in hashtags) hashtags = hashtags + tag
+                                hashtagInput = ""
+                            },
+                            enabled = hashtagInput.trim().isNotEmpty(),
+                            colors = ButtonDefaults.buttonColors(containerColor = ZumeBlue)
+                        ) { Text("Добавить #") }
+                        if (hashtags.isNotEmpty()) {
+                            Spacer(Modifier.height(10.dp))
+                            Text(hashtags.joinToString("   "), color = ZumeBlue, fontSize = 15.sp)
+                            TextButton(onClick = { hashtags = emptyList() }) { Text("Очистить хэштеги") }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Пока профиль и хэштеги хранятся только на этом экране. Сохранение в аккаунте подключим отдельно.",
+                            color = Color(0xFF7893A5),
+                            fontSize = 12.sp
+                        )
+                    }
                 }
             }
             NavigationBar(containerColor = Color.White) {
@@ -302,6 +368,12 @@ fun ZumeHome(onSignOut: () -> Unit) {
                     onClick = { selectedTab = 2 },
                     icon = { Text("⌕", fontSize = 22.sp) },
                     label = { Text("Найти друзей") }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    icon = { Text("●", fontSize = 20.sp) },
+                    label = { Text("Профиль") }
                 )
             }
         }
