@@ -11,9 +11,19 @@ service cloud.firestore {
         && request.resource.data.likedBy == [];
       allow update: if request.auth != null
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy'])
-        && request.resource.data.likedBy is list
-        && request.resource.data.likedBy.size() <= resource.data.likedBy.size() + 1
-        && resource.data.likedBy.size() <= request.resource.data.likedBy.size() + 1;
+        && (
+          (
+            request.resource.data.likedBy.hasAll(resource.data.likedBy)
+            && request.resource.data.likedBy.size() == resource.data.likedBy.size() + 1
+            && request.resource.data.likedBy.hasAny([request.auth.uid])
+          )
+          ||
+          (
+            resource.data.likedBy.hasAll(request.resource.data.likedBy)
+            && resource.data.likedBy.size() == request.resource.data.likedBy.size() + 1
+            && resource.data.likedBy.hasAny([request.auth.uid])
+          )
+        );
     }
   }
 }
