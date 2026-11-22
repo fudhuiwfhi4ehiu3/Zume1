@@ -93,7 +93,7 @@ fun ZumeWelcome() {
     var password by remember { mutableStateOf("") }
     var isRegister by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    var isSignedIn by remember { mutableStateOf(false) }
+    var isSignedIn by remember { mutableStateOf(auth.currentUser?.isEmailVerified == true) }
     var message by remember { mutableStateOf("Добро пожаловать в Zume!") }
 
     if (isSignedIn) {
