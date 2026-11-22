@@ -47,15 +47,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 
-private val ZumeBlue = Color(0xFF2496E8)
-private val PaleBlue = Color(0xFFEAF6FF)
+private val ZumeBlue = Color(0xFF8154D9)
+private val PaleBlue = Color(0xFFFFF7FC)
+private val RainbowBrush = Brush.horizontalGradient(
+    listOf(
+        Color(0xFFFF5B8D),
+        Color(0xFFFFA64D),
+        Color(0xFFFFD84D),
+        Color(0xFF55C98B),
+        Color(0xFF42BDE8),
+        Color(0xFF8154D9)
+    )
+)
 
 private data class FeedPost(val id: String, val author: String, val text: String, val likedBy: List<String>)
 
@@ -115,7 +127,7 @@ fun ZumeWelcome() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("Zume", color = ZumeBlue, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+            Text("Zume", style = TextStyle(brush = RainbowBrush), fontSize = 48.sp, fontWeight = FontWeight.ExtraBold)
             Text("Общайся. Делись. Будь на связи.", color = Color(0xFF52738A), fontSize = 14.sp)
             Spacer(modifier = Modifier.height(28.dp))
             Column(
@@ -405,12 +417,12 @@ fun ZumeHome(onSignOut: () -> Unit) {
     Surface(modifier = Modifier.fillMaxSize(), color = PaleBlue) {
         androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
             Row(
-                modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 20.dp, vertical = 16.dp),
+                modifier = Modifier.fillMaxWidth().background(RainbowBrush).padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Zume", color = ZumeBlue, fontSize = 30.sp, fontWeight = FontWeight.Bold)
-                TextButton(onClick = onSignOut) { Text("Выйти") }
+                Text("Zume", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
+                TextButton(onClick = onSignOut) { Text("Выйти", color = Color.White) }
             }
             Column(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(20.dp),
@@ -535,7 +547,7 @@ fun ZumeHome(onSignOut: () -> Unit) {
                     }
                 }
             }
-            NavigationBar(containerColor = Color.White) {
+            NavigationBar(containerColor = Color(0xFFFFF0F7)) {
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
