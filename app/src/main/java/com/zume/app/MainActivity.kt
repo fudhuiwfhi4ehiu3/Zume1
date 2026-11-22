@@ -272,6 +272,8 @@ fun ZumeWelcome() {
     }
 }
 
+}
+
 
 @Composable
 private fun FeedScreen() {
