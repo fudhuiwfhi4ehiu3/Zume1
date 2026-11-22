@@ -464,7 +464,7 @@ fun ZumeHome(onSignOut: () -> Unit) {
                             fontSize = 12.sp
                         )
                     }
-                    else -> {
+                    4 -> {
                         Text("Мой профиль", color = Color(0xFF17364A), fontSize = 28.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(16.dp))
                         Surface(color = Color(0xFFD5ECFC), shape = RoundedCornerShape(48.dp), modifier = Modifier.padding(4.dp)) {
@@ -552,6 +552,12 @@ fun ZumeHome(onSignOut: () -> Unit) {
                     onClick = { selectedTab = 3 },
                     icon = { Text("⌕", fontSize = 22.sp) },
                     label = { Text("Найти друзей") }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
+                    icon = { Text("☺", fontSize = 20.sp) },
+                    label = { Text("Профиль") }
                 )
             }
         }
