@@ -23,6 +23,13 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -532,31 +539,31 @@ fun ZumeHome(onSignOut: () -> Unit) {
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    icon = { Text("♥", fontSize = 20.sp) },
+                    icon = { Icon(Icons.Filled.Home, contentDescription = "Лента") },
                     label = { Text("Лента") }
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    icon = { Text("✉", fontSize = 20.sp) },
+                    icon = { Icon(Icons.Filled.ChatBubble, contentDescription = "Переписки") },
                     label = { Text("Переписки") }
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    icon = { Text("●", fontSize = 20.sp) },
+                    icon = { Icon(Icons.Filled.Videocam, contentDescription = "Снять видео") },
                     label = { Text("Снять видео") }
                 )
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
-                    icon = { Text("⌕", fontSize = 22.sp) },
+                    icon = { Icon(Icons.Filled.Search, contentDescription = "Найти друзей") },
                     label = { Text("Найти друзей") }
                 )
                 NavigationBarItem(
                     selected = selectedTab == 4,
                     onClick = { selectedTab = 4 },
-                    icon = { Text("☺", fontSize = 20.sp) },
+                    icon = { Icon(Icons.Filled.Person, contentDescription = "Профиль") },
                     label = { Text("Профиль") }
                 )
             }
