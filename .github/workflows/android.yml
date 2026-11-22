@@ -5,6 +5,9 @@ on:
   push:
     branches: [ "main" ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,8 +32,16 @@ jobs:
       - name: Build debug APK
         run: ./gradlew -Pandroid.useAndroidX=true assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Zume-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish direct APK download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: zume-build-${{ github.run_number }}
+          name: Zume build ${{ github.run_number }}
+          files: app/build/outputs/apk/debug/app-debug.apk
+          make_latest: false
