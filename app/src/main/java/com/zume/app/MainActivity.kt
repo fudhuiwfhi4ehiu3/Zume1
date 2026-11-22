@@ -8,7 +8,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +50,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -121,17 +125,57 @@ fun ZumeWelcome() {
         }
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = PaleBlue) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
+    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF8CCBFA)) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val w = size.width
+                val h = size.height
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        listOf(Color(0xFF55B8F5), Color(0xFFBCE7FF), Color(0xFFEAF8FF))
+                    )
+                )
+                // Sun and soft clouds
+                drawCircle(Color(0xFFFFD84D), radius = w * 0.105f, center = Offset(w * 0.82f, h * 0.16f))
+                val cloud = Color.White.copy(alpha = 0.88f)
+                listOf(
+                    Offset(w * 0.18f, h * 0.19f),
+                    Offset(w * 0.42f, h * 0.11f),
+                    Offset(w * 0.60f, h * 0.27f)
+                ).forEach { p ->
+                    drawCircle(cloud, w * 0.045f, Offset(p.x - w * 0.035f, p.y + h * 0.012f))
+                    drawCircle(cloud, w * 0.055f, Offset(p.x, p.y))
+                    drawCircle(cloud, w * 0.042f, Offset(p.x + w * 0.042f, p.y + h * 0.014f))
+                }
+                val backHill = Path().apply {
+                    moveTo(0f, h * 0.77f)
+                    quadraticTo(w * 0.28f, h * 0.68f, w * 0.52f, h * 0.77f)
+                    quadraticTo(w * 0.78f, h * 0.86f, w, h * 0.73f)
+                    lineTo(w, h)
+                    lineTo(0f, h)
+                    close()
+                }
+                drawPath(backHill, Color(0xFF78C94B))
+                val frontGrass = Path().apply {
+                    moveTo(0f, h * 0.84f)
+                    quadraticTo(w * 0.35f, h * 0.76f, w * 0.63f, h * 0.85f)
+                    quadraticTo(w * 0.83f, h * 0.91f, w, h * 0.82f)
+                    lineTo(w, h)
+                    lineTo(0f, h)
+                    close()
+                }
+                drawPath(frontGrass, Color(0xFF35A943))
+            }
+            Column(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
             Text("Zume", style = TextStyle(brush = RainbowBrush), fontSize = 48.sp, fontWeight = FontWeight.ExtraBold)
             Text("Общайся. Делись. Будь на связи.", color = Color(0xFF52738A), fontSize = 14.sp)
             Spacer(modifier = Modifier.height(28.dp))
             Column(
-                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(24.dp)).padding(20.dp),
+                modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.93f), RoundedCornerShape(24.dp)).padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
